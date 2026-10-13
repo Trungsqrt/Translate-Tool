@@ -156,7 +156,7 @@ Return ONLY valid JSON (no markdown fences, no extra text) with exactly these ke
 } `;
 
   const body = {
-    model: "llama-3.1-8b-instant",
+    model: "openai/gpt-oss-120b",
     messages: [
       { role: "system", content: systemInstruction },
       { role: "user", content: `Word or phrase: "${word}"` }
