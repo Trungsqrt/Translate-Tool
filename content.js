@@ -74,8 +74,9 @@ function handleMouseUp(e) {
  * On mouse down, check if click is outside both icon and popup → cleanup.
  */
 function handleMouseDown(e) {
-  const clickedInsideIcon = triggerIcon && triggerIcon.contains(e.target);
-  const clickedInsidePopup = popupHost && popupHost.contains(e.target);
+  const path = e.composedPath ? e.composedPath() : [];
+  const clickedInsideIcon = triggerIcon && (triggerIcon.contains(e.target) || path.includes(triggerIcon));
+  const clickedInsidePopup = popupHost && (popupHost === e.target || popupHost.contains(e.target) || path.includes(popupHost));
 
   if (!clickedInsideIcon && !clickedInsidePopup) {
     cleanup();
@@ -162,34 +163,37 @@ function removeTriggerIcon() {
  */
 async function handleIconClick(e) {
   e.stopPropagation();
-  if (!currentSelection || isPopupOpen) return;
+  if (!currentSelection) return;
 
   removeTriggerIcon();
-  isPopupOpen = true;
 
-  // Create Shadow DOM host
-  popupHost = document.createElement("div");
-  popupHost.id = "vocablens-popup-host";
-  Object.assign(popupHost.style, {
-    position: "absolute",
-    top: `${currentSelection.rect.top - 8}px`,
-    left: `${Math.min(
-      currentSelection.rect.left,
-      window.scrollX + window.innerWidth - 380
-    )}px`,
-    zIndex: "2147483647",
-    width: "360px",
-  });
+  // Create Shadow DOM host if not already created
+  if (!popupHost) {
+    isPopupOpen = true;
 
-  shadowRoot = popupHost.attachShadow({ mode: "open" });
+    popupHost = document.createElement("div");
+    popupHost.id = "vocablens-popup-host";
+    Object.assign(popupHost.style, {
+      position: "fixed",
+      top: "24px",
+      right: "24px",
+      left: "auto",
+      bottom: "auto",
+      zIndex: "2147483647",
+      width: "380px",
+      maxWidth: "calc(100vw - 32px)",
+    });
 
-  // Inject Tailwind into the shadow root
-  injectTailwindToShadow(shadowRoot);
+    shadowRoot = popupHost.attachShadow({ mode: "open" });
+    injectTailwindToShadow(shadowRoot);
+    document.body.appendChild(popupHost);
+  } else {
+    isPopupOpen = true;
+  }
 
   // Show loading skeleton immediately
   renderLoadingSkeleton(shadowRoot);
-
-  document.body.appendChild(popupHost);
+  attachDraggable(popupHost, shadowRoot);
 
   // Request translation from background service worker
   try {
@@ -200,8 +204,10 @@ async function handleIconClick(e) {
 
     if (response.success) {
       renderVocabCard(shadowRoot, response.data);
+      attachDraggable(popupHost, shadowRoot);
     } else {
       renderError(shadowRoot, response.error);
+      attachDraggable(popupHost, shadowRoot);
     }
   } catch (err) {
     if (err.message && err.message.includes("Extension context invalidated")) {
@@ -209,6 +215,7 @@ async function handleIconClick(e) {
     } else {
       renderError(shadowRoot, err.message || "Connection error. Please try again.");
     }
+    attachDraggable(popupHost, shadowRoot);
   }
 }
 
@@ -243,7 +250,7 @@ function injectTailwindToShadow(root) {
         radial-gradient(circle at 100% 100%, rgba(125, 139, 110, 0.1), transparent 60%);
       border: 1px solid rgba(210, 185, 155, 0.22);
       border-radius: 18px;
-      padding: 22px;
+      padding: 14px 20px 20px 20px;
       box-shadow:
         0 24px 52px -10px rgba(0,0,0,0.75),
         0 0 0 1px rgba(255,255,255,0.04),
@@ -251,9 +258,44 @@ function injectTailwindToShadow(root) {
       color: #EDE6DD;
       animation: vocablens-fadein 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       position: relative;
-      overflow: hidden;
-      min-width: 340px;
-      max-width: 400px;
+      overflow-y: auto;
+      max-height: calc(100vh - 48px);
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    /* Custom smooth slim scrollbar */
+    .vl-card::-webkit-scrollbar {
+      width: 5px;
+    }
+    .vl-card::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 4px;
+    }
+    .vl-card::-webkit-scrollbar-thumb {
+      background: rgba(200, 180, 155, 0.3);
+      border-radius: 4px;
+    }
+    .vl-card::-webkit-scrollbar-thumb:hover {
+      background: rgba(200, 180, 155, 0.55);
+    }
+
+    /* Subtle top drag handle */
+    .vl-drag-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(200, 180, 155, 0.25);
+      border-radius: 3px;
+      margin: 0 auto 12px auto;
+      cursor: grab;
+      transition: all 0.2s ease;
+    }
+    .vl-drag-handle:hover {
+      background: rgba(200, 180, 155, 0.55);
+      transform: scaleY(1.3);
+    }
+    .vl-drag-handle:active {
+      cursor: grabbing;
     }
 
     /* ---------- Header ---------- */
@@ -465,6 +507,7 @@ function renderLoadingSkeleton(root) {
   const card = document.createElement("div");
   card.className = "vl-card";
   card.innerHTML = `
+    <div class="vl-drag-handle" title="Kéo để di chuyển"></div>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
       <div>
         <div class="vl-skeleton" style="width:120px;height:22px;margin-bottom:6px;"></div>
@@ -519,6 +562,7 @@ function renderVocabCard(root, data) {
     ` : '';
 
     card.innerHTML = `
+      <div class="vl-drag-handle" title="Kéo để di chuyển"></div>
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
         <div style="flex:1;min-width:0;">
           <div class="vl-word">${escapeHtml(word)}</div>
@@ -581,6 +625,7 @@ function renderVocabCard(root, data) {
   } else {
     // Sentence / Paragraph: Only show the translated meaning, no original text
     card.innerHTML = `
+      <div class="vl-drag-handle" title="Kéo để di chuyển"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#D4CBC0;">Bản dịch tiếng Việt</span>
         <span class="vl-badge" style="background:rgba(194,120,84,0.15);border-color:rgba(194,120,84,0.3);color:#D48B66;">Dịch câu</span>
@@ -710,6 +755,7 @@ function renderError(root, message) {
   const card = document.createElement("div");
   card.className = "vl-card";
   card.innerHTML = `
+    <div class="vl-drag-handle" title="Kéo để di chuyển"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
            stroke-width="2" stroke="#f87171" width="18" height="18">
@@ -731,6 +777,53 @@ function renderError(root, message) {
   root.appendChild(card);
 
   root.getElementById("vl-close-btn")?.addEventListener("click", cleanup);
+}
+
+/**
+ * Attaches smooth dragging behavior to the popup via its drag handle.
+ */
+function attachDraggable(host, root) {
+  if (!host || !root) return;
+  const dragHandle = root.querySelector(".vl-drag-handle");
+  if (!dragHandle) return;
+
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initialLeft = 0, initialTop = 0;
+
+  dragHandle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = host.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    host.style.right = "auto";
+    host.style.bottom = "auto";
+    host.style.left = `${initialLeft}px`;
+    host.style.top = `${initialTop}px`;
+
+    const onMouseMove = (moveEvent) => {
+      if (!isDragging) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      const newLeft = Math.max(8, Math.min(window.innerWidth - host.offsetWidth - 8, initialLeft + dx));
+      const newTop = Math.max(8, Math.min(window.innerHeight - 80, initialTop + dy));
+      host.style.left = `${newLeft}px`;
+      host.style.top = `${newTop}px`;
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  });
 }
 
 // ---------------------------------------------------------------------------
