@@ -15,7 +15,6 @@
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const DICTIONARY_BASE = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 const GROQ_BASE =
   "https://api.groq.com/openai/v1/chat/completions";
 
@@ -48,128 +47,134 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Orchestrates parallel calls to the Dictionary API and Groq API,
- * then merges the results into a single VocabEntry object.
- * @param {string} word – The selected text from the page.
- * @returns {Promise<object>} Merged vocab entry.
+ * Orchestrates translation directly through Groq for blazing speed (~0.3s):
+ * - Single word: Groq generates standard IPA, Vietnamese meaning, nuance explanation & example.
+ * - Multi-word (phrases/sentences/paragraphs): Groq directly translates to Vietnamese only.
+ * No third-party dictionary delays or timeouts.
+ * @param {string} text – The selected text from the page.
+ * @returns {Promise<object>} VocabEntry or translation result.
  */
-async function handleTranslate(word) {
-  // Fire both requests in parallel for speed
-  const [dictResult, groqResult] = await Promise.allSettled([
-    fetchDictionary(word),
-    fetchGroq(word),
-  ]);
+async function handleTranslate(text) {
+  const trimmed = text.trim();
+  const wordTokens = trimmed.split(/\s+/).filter(Boolean);
+  const isSingleWord = wordTokens.length === 1;
 
-  // Dictionary data (optional – graceful degradation if not found)
-  const dictData =
-    dictResult.status === "fulfilled" ? dictResult.value : { ipa: "", audioUrl: "" };
+  if (isSingleWord) {
+    // 1 single word: fetch detailed dictionary data directly from Groq
+    const groqData = await fetchGroqSingleWord(trimmed);
 
-  // Groq data (required – throw if failed)
-  if (groqResult.status === "rejected") {
-    // If the error is an Error object, we want its message, otherwise just stringify
-    const msg = groqResult.reason instanceof Error ? groqResult.reason.message : groqResult.reason;
-    throw new Error(msg);
+    return {
+      word: trimmed,
+      isSingleWord: true,
+      ipa: groqData.ipa || "",
+      audioUrl: "", // Browser synthesizes native speech via Web Speech API
+      translation: groqData.translation || "",
+      explanation: groqData.explanation || "",
+      example_en: groqData.example_en || "",
+      example_vi: groqData.example_vi || "",
+      example: groqData.example || "",
+    };
+  } else {
+    // Multiple words / sentence / paragraph: fast direct translation
+    const groqData = await fetchGroqFastTranslate(trimmed);
+
+    return {
+      word: trimmed,
+      isSingleWord: false,
+      ipa: "",
+      audioUrl: "",
+      translation: groqData.translation || "",
+      explanation: "",
+      example_en: "",
+      example_vi: "",
+      example: "",
+    };
   }
-  const groqData = groqResult.value;
-
-  return {
-    word,
-    ipa: dictData.ipa || "",
-    audioUrl: dictData.audioUrl || "",
-    translation: groqData.translation || "",
-    explanation: groqData.explanation || "",
-    example_en: groqData.example_en || "",
-    example_vi: groqData.example_vi || "",
-    example: groqData.example || "", // For backward compatibility if needed
-  };
 }
 
 // ---------------------------------------------------------------------------
-// Free Dictionary API
+// Groq API Callers
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches IPA transcription and audio URL from dictionaryapi.dev.
- * Silently returns empty strings on failure (word may not be in dictionary).
- * @param {string} word
- * @returns {Promise<{ipa: string, audioUrl: string}>}
+ * Detailed dictionary entry for a single word.
  */
-async function fetchDictionary(word) {
-  const url = `${DICTIONARY_BASE}${encodeURIComponent(word.toLowerCase())}`;
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    // 404 = word not found; return graceful empty values
-    return { ipa: "", audioUrl: "" };
-  }
-
-  const json = await res.json();
-  const entry = json[0]; // First dictionary entry
-
-  // Extract first available phonetic object that has both text and audio
-  let ipa = "";
-  let audioUrl = "";
-
-  if (entry?.phonetics?.length) {
-    // Prefer a phonetic that has both text and audio
-    const withBoth = entry.phonetics.find((p) => p.text && p.audio);
-    const withAudio = entry.phonetics.find((p) => p.audio);
-    const withText = entry.phonetics.find((p) => p.text);
-
-    ipa = withBoth?.text ?? withText?.text ?? entry.phonetic ?? "";
-    audioUrl = withBoth?.audio ?? withAudio?.audio ?? "";
-  } else if (entry?.phonetic) {
-    ipa = entry.phonetic;
-  }
-
-  return { ipa, audioUrl };
-}
-
-// ---------------------------------------------------------------------------
-// Groq API
-// ---------------------------------------------------------------------------
-
-/**
- * Calls Groq (Llama 3) to get Vietnamese translation, explanation, and an example sentence.
- * @param {string} word
- * @returns {Promise<{translation: string, explanation: string, example: string}>}
- */
-async function fetchGroq(word) {
-  // Retrieve API key from storage
-  const stored = await chrome.storage.local.get("groqApiKey");
+async function fetchGroqSingleWord(word) {
+  const stored = await chrome.storage.local.get(["groqApiKey", "groqModel"]);
   const apiKey = stored.groqApiKey;
+  const model = stored.groqModel?.trim() || "llama-3.3-70b-versatile";
 
   if (!apiKey) {
     throw new Error(
-      "Groq API key not set. Please open the extension Options page to add your key."
+      "Groq API key not set. Please click the extension icon to enter your API key."
     );
   }
 
   const systemInstruction = `You are an English-Vietnamese dictionary assistant.
 Return ONLY valid JSON (no markdown fences, no extra text) with exactly these keys:
 {
-"ipa": "The standard IPA phonetic transcription for "${word}" (e.g., "/rɪˈkwest ˈnʌm.bər/").",
-  "translation": "<Short Vietnamese meaning of the word/phrase>",
-  "explanation": "<Brief explanation of nuance, tone, or usage context in Vietnamese>",
-  "example_en": "One natural English example sentence using the word.",
-  "example_vi": "Vietnamese translation of the example sentence.";
-} `;
+  "ipa": "Standard IPA transcription for \\"${word}\\"",
+  "translation": "<Short Vietnamese meaning>",
+  "explanation": "<Brief nuance or usage context in Vietnamese>",
+  "example_en": "One natural English example sentence.",
+  "example_vi": "Vietnamese translation of the example sentence."
+}`;
 
   const body = {
-    model: "openai/gpt-oss-120b",
+    model: model,
     messages: [
       { role: "system", content: systemInstruction },
-      { role: "user", content: `Word or phrase: "${word}"` }
+      { role: "user", content: `Word: "${word}"` }
     ],
-    temperature: 0.3,
-    max_tokens: 512,
+    temperature: 0.2,
+    max_tokens: 384,
   };
 
+  return await callGroqAPI(body, apiKey);
+}
+
+/**
+ * Ultra-fast direct translation for sentences, phrases, and paragraphs.
+ * Only outputs the Vietnamese translation, saving massive compute and tokens.
+ */
+async function fetchGroqFastTranslate(text) {
+  const stored = await chrome.storage.local.get(["groqApiKey", "groqModel"]);
+  const apiKey = stored.groqApiKey;
+  const model = stored.groqModel?.trim() || "llama-3.3-70b-versatile";
+
+  if (!apiKey) {
+    throw new Error(
+      "Groq API key not set. Please click the extension icon to enter your API key."
+    );
+  }
+
+  const systemInstruction = `You are an expert English-to-Vietnamese translator.
+Translate the user's English text into fluent, natural Vietnamese.
+Return ONLY valid JSON with a single key "translation":
+{"translation": "<Vietnamese translation>"}`;
+
+  const body = {
+    model: model,
+    messages: [
+      { role: "system", content: systemInstruction },
+      { role: "user", content: text }
+    ],
+    temperature: 0.2,
+    max_tokens: 1024,
+  };
+
+  return await callGroqAPI(body, apiKey);
+}
+
+/**
+ * Common caller for Groq chat completions.
+ */
+async function callGroqAPI(body, apiKey) {
   const res = await fetch(GROQ_BASE, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey} `
+      "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(body),
   });
@@ -178,7 +183,7 @@ Return ONLY valid JSON (no markdown fences, no extra text) with exactly these ke
     const errText = await res.text();
 
     if (res.status === 429) {
-      throw new Error("Groq API Quota Exceeded. Please wait a moment before trying again, or check your API plan.");
+      throw new Error("Groq API Quota Exceeded. Please wait a moment or check your API plan.");
     }
 
     let parsedMsg = errText;
@@ -187,21 +192,18 @@ Return ONLY valid JSON (no markdown fences, no extra text) with exactly these ke
       if (errJson.error && errJson.error.message) {
         parsedMsg = errJson.error.message;
       }
-    } catch (e) {
+    } catch {
       // Not JSON, use raw text
     }
 
-    throw new Error(`Groq API Error(${res.status}): ${parsedMsg} `);
+    throw new Error(`Groq API Error(${res.status}): ${parsedMsg}`);
   }
 
   const json = await res.json();
-
-  // Extract the text content from Groq's response structure
   const rawText = json?.choices?.[0]?.message?.content ?? "";
 
-  // Strip potential markdown code fences just in case
   const cleaned = rawText
-    .replace(/^```json\s */i, "")
+    .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();

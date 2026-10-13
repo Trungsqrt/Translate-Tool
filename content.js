@@ -102,8 +102,9 @@ function showTriggerIcon(rect) {
     width: "32px",
     height: "32px",
     borderRadius: "50%",
-    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-    boxShadow: "0 4px 15px rgba(99,102,241,0.5)",
+    background: "linear-gradient(145deg, #A85A32 0%, #85401C 100%)",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
+    border: "1px solid rgba(220,180,150,0.3)",
     cursor: "pointer",
     zIndex: "2147483647",
     display: "flex",
@@ -111,7 +112,7 @@ function showTriggerIcon(rect) {
     justifyContent: "center",
     fontSize: "15px",
     userSelect: "none",
-    animation: "vocablens-pop 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards",
+    animation: "vocablens-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
   });
 
   // Inject keyframe animation into host document (one-time)
@@ -120,11 +121,11 @@ function showTriggerIcon(rect) {
     style.id = "vocablens-anim";
     style.textContent = `
       @keyframes vocablens-pop {
-        from { transform: scale(0); opacity: 0; }
+        from { transform: scale(0.6); opacity: 0; }
         to   { transform: scale(1); opacity: 1; }
       }
       @keyframes vocablens-fadein {
-        from { opacity: 0; transform: translateY(8px); }
+        from { opacity: 0; transform: translateY(6px); }
         to   { opacity: 1; transform: translateY(0); }
       }
     `;
@@ -133,7 +134,7 @@ function showTriggerIcon(rect) {
 
   triggerIcon.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-         stroke-width="2" stroke="white" width="16" height="16">
+         stroke-width="1.8" stroke="#F5EFEB" width="16" height="16">
       <path stroke-linecap="round" stroke-linejoin="round"
         d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987
            8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1
@@ -224,106 +225,115 @@ function injectTailwindToShadow(root) {
   const baseStyle = document.createElement("style");
   baseStyle.textContent = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :host { all: initial; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    :host { 
+      all: initial; 
+      font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif; 
+      font-weight: 500; 
+      -webkit-font-smoothing: antialiased; 
+    }
 
-    /* Import Inter font */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    /* Import Lora (Serif) & Be Vietnam Pro (Engineered for Vietnamese) */
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
 
-    /* ---------- Card container ---------- */
+    /* ---------- Wabi-Sabi Card container ---------- */
     .vl-card {
-      background: linear-gradient(145deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
-      border: 1px solid rgba(139,92,246,0.3);
-      border-radius: 16px;
-      padding: 20px;
+      background: #171513;
+      background-image: 
+        radial-gradient(ellipse at 50% -10%, rgba(194, 120, 84, 0.15), transparent 70%),
+        radial-gradient(circle at 100% 100%, rgba(125, 139, 110, 0.1), transparent 60%);
+      border: 1px solid rgba(210, 185, 155, 0.22);
+      border-radius: 18px;
+      padding: 22px;
       box-shadow:
-        0 25px 50px rgba(0,0,0,0.5),
-        0 0 0 1px rgba(139,92,246,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.07);
-      color: #e2e8f0;
-      animation: vocablens-fadein 0.25s ease forwards;
+        0 24px 52px -10px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(255,255,255,0.04),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      color: #EDE6DD;
+      animation: vocablens-fadein 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       position: relative;
       overflow: hidden;
       min-width: 340px;
-      max-width: 380px;
-    }
-    .vl-card::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 140px; height: 140px;
-      background: radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%);
-      pointer-events: none;
+      max-width: 400px;
     }
 
     /* ---------- Header ---------- */
     .vl-word {
-      font-size: 22px;
-      font-weight: 700;
-      color: #f1f5f9;
-      letter-spacing: -0.3px;
-      line-height: 1.2;
+      font-family: 'Lora', Georgia, 'Times New Roman', serif;
+      font-size: 25px;
+      font-weight: 600;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
     }
     .vl-ipa {
-      font-size: 14px;
-      color: #a78bfa;
+      font-family: 'Lora', Georgia, serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #B5C9A3;
       font-style: italic;
-      margin-top: 2px;
+      margin-top: 3px;
     }
     .vl-audio-btn {
-      background: rgba(139,92,246,0.2);
-      border: 1px solid rgba(139,92,246,0.4);
+      background: rgba(181, 201, 163, 0.14);
+      border: 1px solid rgba(181, 201, 163, 0.32);
       border-radius: 8px;
-      padding: 4px 8px;
+      padding: 5px 10px;
       cursor: pointer;
-      color: #a78bfa;
+      color: #D5E5C6;
       font-size: 13px;
-      transition: all 0.2s;
+      font-weight: 600;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
     .vl-audio-btn:hover {
-      background: rgba(139,92,246,0.35);
-      color: #c4b5fd;
-      transform: scale(1.05);
+      background: rgba(181, 201, 163, 0.25);
+      color: #FFFFFF;
+      transform: translateY(-1px);
     }
 
     /* ---------- Divider ---------- */
     .vl-divider {
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(139,92,246,0.4), transparent);
-      margin: 14px 0;
+      background: linear-gradient(90deg, transparent, rgba(200, 180, 155, 0.28), transparent);
+      margin: 15px 0;
     }
 
     /* ---------- Content sections ---------- */
     .vl-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 1.2px;
+      letter-spacing: 0.9px;
       text-transform: uppercase;
-      color: #7c3aed;
-      margin-bottom: 4px;
+      color: #D4CBC0;
+      margin-bottom: 5px;
     }
     .vl-translation {
-      font-size: 18px;
+      font-family: 'Lora', Georgia, serif;
+      font-size: 21px;
       font-weight: 600;
-      color: #fbbf24;
-      margin-bottom: 10px;
+      color: #F5C68A;
+      margin-bottom: 12px;
+      line-height: 1.4;
     }
     .vl-explanation {
-      font-size: 13px;
-      color: #94a3b8;
-      line-height: 1.6;
-      margin-bottom: 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #EDE6DD;
+      line-height: 1.65;
+      margin-bottom: 15px;
     }
     .vl-example {
-      font-size: 13px;
-      color: #c7d2fe;
-      line-height: 1.6;
-      background: rgba(99,102,241,0.1);
-      border-left: 3px solid #6366f1;
-      padding: 8px 12px;
-      border-radius: 0 8px 8px 0;
+      font-family: 'Lora', Georgia, serif;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: #F0F6EE;
+      line-height: 1.65;
+      background: rgba(56, 68, 50, 0.4);
+      border-left: 3px solid #8A9E7B;
+      padding: 10px 14px;
+      border-radius: 0 10px 10px 0;
       font-style: italic;
     }
 
@@ -331,65 +341,88 @@ function injectTailwindToShadow(root) {
     .vl-actions {
       display: flex;
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 18px;
       align-items: center;
       justify-content: space-between;
     }
     .vl-save-btn {
       flex: 1;
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
+      background: linear-gradient(145deg, #B5653C 0%, #944820 100%);
+      color: #FFFFFF;
+      border: 1px solid rgba(240, 200, 170, 0.2);
+      border-radius: 11px;
       padding: 10px 16px;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.25s;
+      transition: all 0.25s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+      box-shadow: 0 4px 14px rgba(181, 101, 60, 0.3);
     }
     .vl-save-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+      box-shadow: 0 6px 18px rgba(181, 101, 60, 0.4);
+      background: linear-gradient(145deg, #C47248 0%, #A45228 100%);
     }
     .vl-save-btn:disabled {
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+      background: rgba(48, 59, 42, 0.95);
+      border: 1px solid rgba(145, 163, 128, 0.4);
+      color: #D5E5C6;
+      box-shadow: none;
       cursor: default;
     }
-    .vl-close-btn {
-      width: 36px;
-      height: 36px;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #94a3b8;
+    .vl-copy-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(200, 180, 155, 0.24);
+      border-radius: 11px;
+      color: #EDE6DD;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      transition: all 0.2s;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .vl-copy-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: #FFFFFF;
+      transform: translateY(-1px);
+    }
+    .vl-close-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #C4B8AA;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      transition: all 0.2s ease;
       flex-shrink: 0;
     }
     .vl-close-btn:hover {
       background: rgba(255,255,255,0.12);
-      color: #f1f5f9;
+      color: #FFFFFF;
     }
 
     /* ---------- Skeleton loading ---------- */
     .vl-skeleton {
       border-radius: 6px;
       background: linear-gradient(90deg,
-        rgba(255,255,255,0.06) 0%,
-        rgba(255,255,255,0.12) 50%,
-        rgba(255,255,255,0.06) 100%);
+        rgba(255,255,255,0.05) 0%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.05) 100%);
       background-size: 200% 100%;
-      animation: vl-shimmer 1.5s infinite;
+      animation: vl-shimmer 1.8s infinite;
     }
     @keyframes vl-shimmer {
       0% { background-position: 200% 0; }
@@ -398,12 +431,13 @@ function injectTailwindToShadow(root) {
 
     /* ---------- Error state ---------- */
     .vl-error {
-      color: #f87171;
-      font-size: 13px;
-      background: rgba(239,68,68,0.1);
-      border: 1px solid rgba(239,68,68,0.25);
-      border-radius: 8px;
-      padding: 10px 12px;
+      color: #FF9E9E;
+      font-size: 13.5px;
+      font-weight: 500;
+      background: rgba(140, 50, 50, 0.2);
+      border: 1px solid rgba(200, 80, 80, 0.35);
+      border-radius: 10px;
+      padding: 11px 15px;
       line-height: 1.5;
     }
 
@@ -412,12 +446,13 @@ function injectTailwindToShadow(root) {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      background: rgba(99,102,241,0.15);
-      border: 1px solid rgba(99,102,241,0.3);
+      background: rgba(181, 201, 163, 0.16);
+      border: 1px solid rgba(181, 201, 163, 0.35);
       border-radius: 20px;
-      padding: 2px 8px;
+      padding: 2.5px 9px;
       font-size: 11px;
-      color: #a5b4fc;
+      font-weight: 600;
+      color: #B5C9A3;
     }
   `;
   root.appendChild(baseStyle);
@@ -459,91 +494,162 @@ function renderLoadingSkeleton(root) {
 // ---------------------------------------------------------------------------
 function renderVocabCard(root, data) {
   const { word, ipa, audioUrl, translation, explanation, example_en, example_vi, example } = data;
+  const isSingle = data.isSingleWord !== undefined 
+    ? data.isSingleWord 
+    : (word.trim().split(/\s+/).filter(Boolean).length === 1);
 
   const card = document.createElement("div");
   card.className = "vl-card";
 
-  card.innerHTML = `
-    <!-- Header: word + IPA + audio -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
-      <div style="flex:1;min-width:0;">
-        <div class="vl-word">${escapeHtml(word)}</div>
-        ${ipa
-      ? `<div class="vl-ipa">${escapeHtml(ipa)}</div>`
-      : `<div class="vl-ipa" style="color:#475569;font-size:12px;">No IPA found</div>`}
+  // Build HTML depending on single word vs sentence
+  if (isSingle) {
+    // Single Word: Full vocab card (word, IPA, listen, meaning, explanation, example)
+    const explanationHtml = explanation ? `
+      <div class="vl-label">Giải thích & Sắc thái</div>
+      <div class="vl-explanation">${escapeHtml(explanation)}</div>
+    ` : '';
+
+    const hasExample = example_en || example;
+    const exampleHtml = hasExample ? `
+      <div class="vl-label" style="margin-bottom:5px;">Ví dụ</div>
+      <div class="vl-example">
+        <div style="font-weight: 600; margin-bottom: 5px; color:#FFFFFF;">"${escapeHtml(example_en || example || "")}"</div>
+        ${example_vi ? `<div style="font-style: normal; color: #B5C9A3; font-weight: 500; font-family: 'Be Vietnam Pro', sans-serif;">${escapeHtml(example_vi)}</div>` : ''}
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:10px;">
-        ${audioUrl
-      ? `<button class="vl-audio-btn" id="vl-play-audio" title="Play pronunciation">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     stroke-width="2" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0
-                       0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0
-                       0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009
-                       0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51
-                       8.25H6.75Z"/>
-                </svg>
-                Listen
-              </button>`
-      : ""
-    }
-        <span class="vl-badge">
+    ` : '';
+
+    card.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+        <div style="flex:1;min-width:0;">
+          <div class="vl-word">${escapeHtml(word)}</div>
+          ${ipa ? `<div class="vl-ipa">${escapeHtml(ipa)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;margin-left:10px;">
+          <button class="vl-audio-btn" id="vl-play-audio" title="Nghe phát âm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke-width="1.8" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0
+                   0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0
+                   0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009
+                   0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51
+                   8.25H6.75Z"/>
+            </svg>
+            Nghe
+          </button>
+          <span class="vl-badge">Từ vựng</span>
+        </div>
+      </div>
+
+      <div class="vl-divider"></div>
+
+      <!-- Translation -->
+      <div class="vl-label">Nghĩa tiếng Việt</div>
+      <div class="vl-translation" style="font-family:'Lora',serif;font-size:21px;font-weight:600;color:#F5C68A;line-height:1.4;">${escapeHtml(translation)}</div>
+
+      ${explanationHtml}
+      ${exampleHtml}
+
+      <!-- Action buttons -->
+      <div class="vl-actions">
+        <button class="vl-save-btn" id="vl-save-btn">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-               stroke-width="2" stroke="currentColor" width="10" height="10">
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
             <path stroke-linecap="round" stroke-linejoin="round"
-              d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
+              d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
           </svg>
-          AI
-        </span>
+          Lưu từ
+        </button>
+
+        <button class="vl-copy-btn" id="vl-copy-btn" title="Sao chép bản dịch">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375-7.5-7.5"/>
+          </svg>
+          Sao chép
+        </button>
+
+        <button class="vl-close-btn" id="vl-close-btn" title="Đóng">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
-    </div>
+    `;
+  } else {
+    // Sentence / Paragraph: Only show the translated meaning, no original text
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#D4CBC0;">Bản dịch tiếng Việt</span>
+        <span class="vl-badge" style="background:rgba(194,120,84,0.15);border-color:rgba(194,120,84,0.3);color:#D48B66;">Dịch câu</span>
+      </div>
 
-    <div class="vl-divider"></div>
+      <!-- Pure Translation Only -->
+      <div class="vl-translation" style="font-size:16.5px;line-height:1.65;color:#FFFFFF;font-weight:500;font-family:'Be Vietnam Pro',sans-serif;margin-bottom:18px;">
+        ${escapeHtml(translation)}
+      </div>
 
-    <!-- Translation -->
-    <div class="vl-label">Nghĩa tiếng Việt</div>
-    <div class="vl-translation">${escapeHtml(translation)}</div>
+      <!-- Action buttons -->
+      <div class="vl-actions">
+        <button class="vl-copy-btn" id="vl-copy-btn" style="flex:1;" title="Sao chép bản dịch">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375-7.5-7.5"/>
+          </svg>
+          Sao chép
+        </button>
 
-    <!-- Explanation -->
-    <div class="vl-label">Giải thích & Sắc thái</div>
-    <div class="vl-explanation">${escapeHtml(explanation)}</div>
+        <button class="vl-save-btn" id="vl-save-btn" style="flex:1;" title="Lưu bản dịch">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          </svg>
+          Lưu
+        </button>
 
-    <!-- Example -->
-    <div class="vl-label" style="margin-bottom:4px;">Ví dụ</div>
-    <div class="vl-example">
-      <div style="font-weight: 500; margin-bottom: 4px;">"${escapeHtml(example_en || example || "")}"</div>
-      ${example_vi ? `<div style="font-style: normal; color: #a5b4fc;">${escapeHtml(example_vi)}</div>` : ''}
-    </div>
-
-    <!-- Action buttons -->
-    <div class="vl-actions">
-      <button class="vl-save-btn" id="vl-save-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-             stroke-width="2" stroke="currentColor" width="14" height="14">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-        </svg>
-        Add to Vocab
-      </button>
-      <button class="vl-close-btn" id="vl-close-btn" title="Close">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-             stroke-width="2" stroke="currentColor" width="14" height="14">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-  `;
+        <button class="vl-close-btn" id="vl-close-btn" title="Đóng">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               stroke-width="1.8" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    `;
+  }
 
   clearShadowContent(root);
   root.appendChild(card);
 
-  // Wire up audio button
+  // Wire up audio button (Native Web Speech API - 0ms latency, always works)
   const playBtn = root.getElementById("vl-play-audio");
-  if (playBtn && audioUrl) {
+  if (playBtn) {
     playBtn.addEventListener("click", () => {
-      const audio = new Audio(audioUrl);
-      audio.play().catch(console.error);
+      speakWordNative(word);
+    });
+  }
+
+  // Wire up copy button
+  const copyBtn = root.getElementById("vl-copy-btn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(translation).then(() => {
+        copyBtn.innerHTML = `Đã chép ✓`;
+        copyBtn.style.color = "#A3B18A";
+        setTimeout(() => {
+          copyBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke-width="1.8" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375-7.5-7.5"/>
+            </svg>
+            Sao chép`;
+          copyBtn.style.color = "";
+        }, 1800);
+      }).catch(console.error);
     });
   }
 
@@ -565,10 +671,10 @@ function renderVocabCard(root, data) {
       saveBtn.disabled = true;
       saveBtn.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-             stroke-width="2.5" stroke="currentColor" width="14" height="14">
+             stroke-width="2" stroke="currentColor" width="14" height="14">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
         </svg>
-        Saving…
+        Đang lưu…
       `;
 
       try {
@@ -581,13 +687,11 @@ function renderVocabCard(root, data) {
           setSavedState(saveBtn);
         } else {
           saveBtn.disabled = false;
-          saveBtn.innerHTML = `⚠ Error – Try again`;
-          saveBtn.style.background = "linear-gradient(135deg,#ef4444,#dc2626)";
+          saveBtn.innerHTML = `⚠ Lỗi – Thử lại`;
         }
       } catch (err) {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = `⚠ Error - Refresh page`;
-        saveBtn.style.background = "linear-gradient(135deg,#ef4444,#dc2626)";
+        saveBtn.innerHTML = `⚠ Lỗi – Tải lại trang`;
       }
     });
   }
@@ -659,6 +763,19 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function speakWordNative(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.92;
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.warn("Speech synthesis error:", err);
+  }
 }
 
 function cleanup() {
