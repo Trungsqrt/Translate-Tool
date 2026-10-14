@@ -25,57 +25,150 @@ let isPopupOpen = false;
 
 
 // ---------------------------------------------------------------------------
-// Entry point: listen for text selections
+// Entry point: listen for text selections with capture phase
 // ---------------------------------------------------------------------------
-document.addEventListener("mouseup", handleMouseUp);
-document.addEventListener("mousedown", handleMouseDown);
+let selectionDebounceTimer = null;
+
+// Use capture phase (true) so websites cannot block events via stopPropagation
+window.addEventListener("mouseup", handleSelectionCheck, true);
+window.addEventListener("touchend", handleSelectionCheck, true);
+window.addEventListener("keyup", (e) => {
+  // Check on arrow keys, shift, or selection keyboard shortcuts
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Shift", "Home", "End"].includes(e.key)) {
+    handleSelectionCheck(e);
+  }
+}, true);
+window.addEventListener("mousedown", handleMouseDown, true);
+
+// Selection change fallback (debounced)
+document.addEventListener("selectionchange", () => {
+  if (selectionDebounceTimer) clearTimeout(selectionDebounceTimer);
+  selectionDebounceTimer = setTimeout(() => {
+    // Only check if user is not currently dragging/clicking
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      if (!isPopupOpen) {
+        removeTriggerIcon();
+      }
+    }
+  }, 300);
+});
 
 /**
- * On mouse up, check if user selected meaningful text.
- * If so, show the floating trigger icon.
+ * Extracts selected text and safe bounding coordinates from the page,
+ * supporting regular DOM text, Shadow DOM, and <input>/<textarea> elements.
  */
-function handleMouseUp(e) {
-  // Small delay so selection is fully committed
-  setTimeout(() => {
-    const selection = window.getSelection();
-    const selectedText = selection?.toString().trim();
+function getSelectionData(e) {
+  let text = "";
+  let rect = null;
 
-    // Ignore empty selections or if click was inside our own popup
-    if (!selectedText || selectedText.length < 2) {
+  // 1. Check window.getSelection()
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) {
+    const raw = selection.toString();
+    if (raw && raw.trim().length >= 2) {
+      text = raw.trim();
+      if (selection.rangeCount > 0) {
+        try {
+          const range = selection.getRangeAt(0);
+          let r = range.getBoundingClientRect();
+          // Fallback if bounding client rect has 0 size (e.g. multiline spans or flex layouts)
+          if ((!r || (r.width === 0 && r.height === 0)) && range.getClientRects().length > 0) {
+            r = range.getClientRects()[0];
+          }
+          if (r && (r.width > 0 || r.height > 0 || r.top > 0 || r.left > 0)) {
+            rect = {
+              top: r.top,
+              bottom: r.bottom,
+              left: r.left,
+              right: r.right,
+              width: r.width,
+              height: r.height,
+            };
+          }
+        } catch {
+          // Range access failed safely
+        }
+      }
+    }
+  }
+
+  // 2. Fallback to active <input> or <textarea> element
+  if (!text) {
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+      const start = activeEl.selectionStart;
+      const end = activeEl.selectionEnd;
+      if (typeof start === "number" && typeof end === "number" && end > start) {
+        const sub = activeEl.value.substring(start, end).trim();
+        if (sub.length >= 2) {
+          text = sub;
+          const r = activeEl.getBoundingClientRect();
+          rect = {
+            top: r.top,
+            bottom: r.bottom,
+            left: r.left,
+            right: r.right,
+            width: r.width,
+            height: r.height,
+          };
+        }
+      }
+    }
+  }
+
+  // 3. Fallback coordinates from mouse / touch pointer event if rect is still 0
+  if (text && text.length >= 2 && (!rect || (rect.width === 0 && rect.height === 0))) {
+    const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX) ?? null;
+    const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY) ?? null;
+    if (typeof clientX === "number" && typeof clientY === "number") {
+      rect = {
+        top: clientY - 12,
+        bottom: clientY + 12,
+        left: clientX,
+        right: clientX + 24,
+        width: 24,
+        height: 24,
+      };
+    }
+  }
+
+  if (text && text.length >= 2 && rect) {
+    return { text, rect };
+  }
+  return null;
+}
+
+/**
+ * On user selection, check if text is selected and show the floating trigger icon.
+ */
+function handleSelectionCheck(e) {
+  // If clicking on our trigger icon or inside popup, don't re-trigger
+  const path = e?.composedPath ? e.composedPath() : [];
+  if (triggerIcon && (triggerIcon === e?.target || triggerIcon.contains(e?.target) || path.includes(triggerIcon))) return;
+  if (popupHost && (popupHost === e?.target || popupHost.contains(e?.target) || path.includes(popupHost))) return;
+
+  if (selectionDebounceTimer) clearTimeout(selectionDebounceTimer);
+
+  // Short delay to allow selection to commit across all browser engines
+  selectionDebounceTimer = setTimeout(() => {
+    const data = getSelectionData(e);
+    if (!data) {
+      removeTriggerIcon();
       return;
     }
-    if (popupHost && popupHost.contains(e.target)) return;
-    if (triggerIcon && triggerIcon.contains(e.target)) return;
 
-    // Remove any existing icon before creating a new one
-    removeTriggerIcon();
-
-    // Capture selection data
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-
-    currentSelection = {
-      text: selectedText,
-      rect: {
-        top: rect.top + window.scrollY,
-        bottom: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        right: rect.right + window.scrollX,
-        width: rect.width,
-        height: rect.height,
-      },
-    };
-
-    showTriggerIcon(currentSelection.rect);
-  }, 10);
+    currentSelection = data;
+    showTriggerIcon(data.rect);
+  }, 40);
 }
 
 /**
  * On mouse down, check if click is outside both icon and popup → cleanup.
  */
 function handleMouseDown(e) {
-  const path = e.composedPath ? e.composedPath() : [];
-  const clickedInsideIcon = triggerIcon && (triggerIcon.contains(e.target) || path.includes(triggerIcon));
+  const path = e?.composedPath ? e.composedPath() : [];
+  const clickedInsideIcon = triggerIcon && (triggerIcon === e.target || triggerIcon.contains(e.target) || path.includes(triggerIcon));
   const clickedInsidePopup = popupHost && (popupHost === e.target || popupHost.contains(e.target) || path.includes(popupHost));
 
   if (!clickedInsideIcon && !clickedInsidePopup) {
@@ -89,23 +182,37 @@ function handleMouseDown(e) {
 
 /**
  * Creates and positions the small floating book icon near the selected text.
- * @param {object} rect – Bounding rect (absolute page coordinates)
+ * Uses viewport-relative fixed coordinates so it works reliably in scrollable divs,
+ * SPAs, iframes, and fullscreen containers.
+ * @param {object} rect – Bounding client rect (viewport coordinates)
  */
 function showTriggerIcon(rect) {
+  removeTriggerIcon();
+
   triggerIcon = document.createElement("div");
   triggerIcon.id = "vocablens-trigger";
 
-  // Inline critical styles so they can't be overridden by host CSS
+  // Calculate safe viewport coordinates
+  let iconTop = rect.top - 42;
+  if (iconTop < 10) {
+    // If too close to the top of viewport, flip below the text
+    iconTop = rect.bottom + 8;
+  }
+  // Clamp within viewport
+  iconTop = Math.max(8, Math.min(window.innerHeight - 44, iconTop));
+  const iconLeft = Math.max(10, Math.min(window.innerWidth - 44, rect.left + (rect.width || 0) / 2 - 16));
+
+  // Inline critical styles with fixed positioning to ignore host page overflow / scroll
   Object.assign(triggerIcon.style, {
-    position: "absolute",
-    top: `${rect.top - 42}px`,
-    left: `${rect.left + rect.width / 2 - 16}px`,
+    position: "fixed",
+    top: `${iconTop}px`,
+    left: `${iconLeft}px`,
     width: "32px",
     height: "32px",
     borderRadius: "50%",
     background: "linear-gradient(145deg, #A85A32 0%, #85401C 100%)",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
-    border: "1px solid rgba(220,180,150,0.3)",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
+    border: "1px solid rgba(220,180,150,0.35)",
     cursor: "pointer",
     zIndex: "2147483647",
     display: "flex",
@@ -113,6 +220,9 @@ function showTriggerIcon(rect) {
     justifyContent: "center",
     fontSize: "15px",
     userSelect: "none",
+    pointerEvents: "auto",
+    visibility: "visible",
+    opacity: "1",
     animation: "vocablens-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
   });
 
@@ -130,7 +240,7 @@ function showTriggerIcon(rect) {
         to   { opacity: 1; transform: translateY(0); }
       }
     `;
-    document.head.appendChild(style);
+    (document.head || document.documentElement).appendChild(style);
   }
 
   triggerIcon.innerHTML = `
@@ -144,7 +254,8 @@ function showTriggerIcon(rect) {
     </svg>`;
 
   triggerIcon.addEventListener("click", handleIconClick);
-  document.body.appendChild(triggerIcon);
+  // Append to documentElement to avoid body overflow/transform containment
+  (document.documentElement || document.body).appendChild(triggerIcon);
 }
 
 function removeTriggerIcon() {
@@ -186,7 +297,7 @@ async function handleIconClick(e) {
 
     shadowRoot = popupHost.attachShadow({ mode: "open" });
     injectTailwindToShadow(shadowRoot);
-    document.body.appendChild(popupHost);
+    (document.documentElement || document.body).appendChild(popupHost);
   } else {
     isPopupOpen = true;
   }
